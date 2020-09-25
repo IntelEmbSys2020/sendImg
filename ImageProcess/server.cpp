@@ -18,6 +18,7 @@ using namespace std;
 
 int main()
 {
+    int OK = 1;
     int socket_fd = socket(AF_INET,SOCK_DGRAM,0);   //创建UDP套接字
 
     if(socket_fd < 0)   //创建套接字错误
@@ -48,10 +49,11 @@ int main()
 
     std::cout<<"server waiting:"<<std::endl;
 
-    int recv_num;
+    int recv_num, sendNum;
 
     int imgLength = 0;
     //注意这是阻塞性接口！
+    //接收关于图像长度的变量地址和变量地址所占长度
     recv_num = recvfrom(socket_fd,              //套接字
                         &imgLength,sizeof(imgLength),          //接收缓冲设置
                         0,                          //接收标志
@@ -67,6 +69,15 @@ int main()
         std::cout<<"receive image length error!"<<std::endl;
         return -1;
     }
+
+    /********如果成功地接收到了，发送一个成功信号回client，
+     * client接收到了成功信号以后才会继续发下一个包**********/
+    sendNum = sendto(socket_fd,
+                        &(OK),sizeof(OK),
+                        0,
+                        (struct sockaddr *)&addr_server,len_addr_server);
+
+    //打印收到的信息
     std::cout<<"length of image is:"<<imgLength<<std::endl;
 
     int total = imgLength/MAX_LEN;
@@ -87,6 +98,7 @@ int main()
         return -1;
     }
 
+    //循环地接收包，直到接收所有的包
     std::cout<<"BEFORE interation"<<std::endl;
     for(int i = 0; i<total;i++)
     {
@@ -95,15 +107,22 @@ int main()
                         bufNow,MAX_LEN,          //接收缓冲设置
                         0,                          //接收标志
                         (struct sockaddr *)&cache_addr_client,(socklen_t *)&len_addr_server);     //客户端属性缓冲设置
-        std::cout<<"the bufNow is:"<<(void*)bufNow<<std::endl;
+        //std::cout<<"the bufNow is:"<<(void*)bufNow<<std::endl;
         //std::cout<<"the recvBuf is:"<<recvBuf.ptr<<std::endl;
+        
         if(recv_num != MAX_LEN)
         {
             std::cout << "receive image segment length error!(" << i << ")" << std::endl;
         }
         bufNow += MAX_LEN;
+            /********如果成功地接收到了，发送一个成功信号回client，
+     * client接收到了成功信号以后才会继续发下一个包**********/
+        sendNum = sendto(socket_fd,
+                            &(OK),sizeof(OK),
+                            0,
+                            (struct sockaddr *)&addr_server,len_addr_server);
     }
-
+   //接收最后一个包
     recv_num = recvfrom(socket_fd,              //套接字
                         bufNow,MAX_LEN,          //接收缓冲设置
                         0,                          //接收标志

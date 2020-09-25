@@ -14,13 +14,15 @@
 #include <unistd.h> 
 
 #define DEST_PORT           8000                    //目标服务器端口
-#define DEST_IP_ADDR    "192.168.221.131"     //IP
+//#define DEST_IP_ADDR    "192.168.221.131"     //IP
+#define DEST_IP_ADDR    "10.10.66.17"     //IP
 #define MAX_LEN 60000
 
 using namespace std;
 
 int main()
 {
+    int OKorNot = 0;
     int socket_fd = socket(AF_INET,SOCK_DGRAM,0);   //创建套接字
 
     if(socket_fd < 0)   //创建结果检测
@@ -30,6 +32,7 @@ int main()
     }
 
     struct sockaddr_in addr_server;     //服务器属性
+    struct sockaddr_in cache_addr_client;     //客户端属性存储
     int len_addr_server = sizeof(addr_server);
     memset(&addr_server,0,len_addr_server);
     addr_server.sin_addr.s_addr = inet_addr(DEST_IP_ADDR);
@@ -38,8 +41,11 @@ int main()
     
     int sendNum;
     int recvNum;
+    int recv_num;
     char sendBuf[20] = "Are you hearing?";
     char recvBuf[20];
+    
+
 /***new add***/
     imgData* image = new imgData;
     // cout<<"begin imgpro"<<endl;
@@ -60,11 +66,22 @@ int main()
     fclose(fp);
 /***new add***/
     //std::cout<<"client send:"<<sendBuf<<std::endl;
-
+//发送图片长度信息到server
     sendNum = sendto(socket_fd,
                         &(image->length),sizeof(image->length),
                         0,
                         (struct sockaddr *)&addr_server,len_addr_server);
+    
+    //等待server的回应，若server接收到了前一个包，继续发送下一个包
+    recv_num = recvfrom(socket_fd,              //套接字
+                    &OKorNot,sizeof(OKorNot),          //接收缓冲设置
+                    0,                          //接收标志
+                    (struct sockaddr *)&cache_addr_client,(socklen_t *)&len_addr_server);     //客户端属性缓冲设置
+    if (!OKorNot)
+    {
+        return -1;
+    }
+    OKorNot = 0;//把它重置
 
     if(sendNum < 0)
     {
@@ -95,13 +112,24 @@ int main()
             std::cout<<"send Error!"<<std::endl;
             printf("errno is: %d\n",errno);
         }
-	}
+
+        //等待server的回应，若server接收到了前一个包，继续发送下一个包
+        recv_num = recvfrom(socket_fd,              //套接字
+                        &OKorNot,sizeof(OKorNot),          //接收缓冲设置
+                        0,                          //接收标志
+                        (struct sockaddr *)&cache_addr_client,(socklen_t *)&len_addr_server);     //客户端属性缓冲设置
+        if (!OKorNot)
+        {
+            return -1;
+        }
+        OKorNot = 0;//把它重置        
+    }
     //最后一次 
     sendNum = sendto(socket_fd,
                     currPtr,remain,
                     0,
                     (struct sockaddr *)&addr_server,len_addr_server);
-    
+
     
     if(sendNum < 0)
     {
