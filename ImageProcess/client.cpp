@@ -14,7 +14,7 @@
 #include <unistd.h> 
 
 #define DEST_PORT           8000                    //目标服务器端口
-#define DEST_IP_ADDR    "10.10.66.17"     //IP
+#define DEST_IP_ADDR    "192.168.221.131"     //IP
 #define MAX_LEN 60000
 
 using namespace std;
