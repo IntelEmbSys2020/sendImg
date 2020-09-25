@@ -1,16 +1,19 @@
 #include <iostream>
+#include <stdio.h>
 #include <string>
-
+#include <errno.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <unistd.h>
-#include <stdlib.h>
+#include <arpa/inet.h>
 #include <memory.h>
 #include "imgProcess.h"
+#include <errno.h>
 
+using namespace std;
 #define server_port 8000    //宏定义服务器对外开放端口
-
 #define MAX_LEN 60000
 
 int main()
@@ -74,7 +77,8 @@ int main()
     imgData recvBuf;
     recvBuf.length = imgLength;
     recvBuf.ptr = new char[imgLength];
-    char * bufNow = recvBuf.ptr;
+    char * bufNow = (char*)recvBuf.ptr;
+    std::cout<<"the initial bufNow is:"<<(void*)bufNow<<std::endl;
 
     FILE* fp = fopen("image.bmp", "wb");
     if(!fp)
@@ -83,12 +87,16 @@ int main()
         return -1;
     }
 
+    std::cout<<"BEFORE interation"<<std::endl;
     for(int i = 0; i<total;i++)
     {
+        std::cout<<"in interation"<<std::endl;
         recv_num = recvfrom(socket_fd,              //套接字
                         bufNow,MAX_LEN,          //接收缓冲设置
                         0,                          //接收标志
                         (struct sockaddr *)&cache_addr_client,(socklen_t *)&len_addr_server);     //客户端属性缓冲设置
+        std::cout<<"the bufNow is:"<<(void*)bufNow<<std::endl;
+        //std::cout<<"the recvBuf is:"<<recvBuf.ptr<<std::endl;
         if(recv_num != MAX_LEN)
         {
             std::cout << "receive image segment length error!(" << i << ")" << std::endl;
@@ -96,16 +104,17 @@ int main()
         bufNow += MAX_LEN;
     }
 
-        recv_num = recvfrom(socket_fd,              //套接字
-                            bufNow,MAX_LEN,          //接收缓冲设置
-                            0,                          //接收标志
-                            (struct sockaddr *)&cache_addr_client,(socklen_t *)&len_addr_server);     //客户端属性缓冲设置
-        if(recv_num != remain)
-        {
-            std::cout << "receive image segment length error!(at remain)" << std::endl;
-        }
-    
-    fwrite(recvBuf->ptr, 1, recvBuf->length, fp);
+    recv_num = recvfrom(socket_fd,              //套接字
+                        bufNow,MAX_LEN,          //接收缓冲设置
+                        0,                          //接收标志
+                        (struct sockaddr *)&cache_addr_client,(socklen_t *)&len_addr_server);     //客户端属性缓冲设置
+    if(recv_num != remain)
+    {
+        std::cout << "receive image segment length error!(at remain)" << std::endl;
+    }
+
+    std::cout<<"before fwrite and fclose"<<std::endl;
+    fwrite((char*)recvBuf.ptr, 1, recvBuf.length, fp);
     fclose(fp);
 
     close(socket_fd);   //关闭套接字

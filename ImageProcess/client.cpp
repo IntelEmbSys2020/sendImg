@@ -11,9 +11,10 @@
 #include <memory.h>
 #include "imgProcess.h"
 #include <errno.h>
+#include <unistd.h> 
 
 #define DEST_PORT           8000                    //目标服务器端口
-#define DEST_IP_ADDR    "81.68.85.122"     //IP
+#define DEST_IP_ADDR    "10.10.66.17"     //IP
 #define MAX_LEN 60000
 
 using namespace std;
@@ -83,6 +84,7 @@ int main()
     //除法是向下取整，说明总次数是total加１，最后一次单列
     for(count = 0; count < total; count++)
 	{
+        std::cout<<"now is in iteration:"<<count<<std::endl;
         sendNum = sendto(socket_fd,     //套接字
                         currPtr,MAX_LEN,   //发送数据,每次传送规定的大小
                         0,  //标志位
@@ -125,6 +127,6 @@ int main()
     // recvBuf[recvNum] = '\0';
     // std::cout << "client receive "<<recvNum<<" bytes:" <<recvBuf<<std::endl;
     // close(socket_fd);
-
+    sleep(5);
     return 0;
 }
