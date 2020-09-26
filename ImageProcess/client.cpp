@@ -20,7 +20,7 @@
 
 using namespace std;
 
-int main()
+int main(int argc,char* argv[])
 {
     int socket_fd = socket(AF_INET,SOCK_DGRAM,0);   //创建套接字
 
@@ -31,6 +31,7 @@ int main()
     }
 
     struct sockaddr_in addr_server;     //服务器属性
+    struct sockaddr_in cache_addr_client;     //客户端属性存储
     int len_addr_server = sizeof(addr_server);
     memset(&addr_server,0,len_addr_server);
     addr_server.sin_addr.s_addr = inet_addr(DEST_IP_ADDR);
@@ -38,7 +39,7 @@ int main()
     addr_server.sin_port = htons(DEST_PORT);
     
 
-    //------------获取图像数据
+    //------------获取图像数据-------------
     imgData* image = new imgData;
     // cout<<"begin imgpro"<<endl;
     int status = imgProcess(image);
@@ -68,7 +69,6 @@ int main()
                         &(image->length),sizeof(image->length),
                         0,
                         (struct sockaddr *)&addr_server,len_addr_server);
-
     if(sendNum < 0)
     {
         std::cout<<"send Length Error!"<<std::endl;
@@ -77,9 +77,8 @@ int main()
     else{
         std::cout<<"sendNum(image length) is: "<<sendNum<<std::endl;
     }
+    
 
-    
-    
     char* currPtr = (char*)image->ptr;      //当前发送数据位置指针
     int count = 0;  //当前发送数据包号
     int feedbackNow = 0;    //反馈数据包号
@@ -91,7 +90,6 @@ int main()
     for(count = 0; count < total; count++)
 	{
         //发送count号包
-        // std::cout<<"now is in iteration:"<<count<<std::endl;
         sendNum = sendto(socket_fd,     //套接字
                         currPtr,MAX_LEN,   //发送数据,每次传送规定的大小
                         0,  //标志位
@@ -114,13 +112,14 @@ int main()
             std::cout<<"feedBackError!"<<std::endl;
             return -1;
         }
-	}
+
+    }
     //最后一次 
     sendNum = sendto(socket_fd,
                     currPtr,remain,
                     0,
                     (struct sockaddr *)&addr_server,len_addr_server);
-    
+
     
     if(sendNum < 0)
     {
@@ -128,9 +127,8 @@ int main()
     }
     else
     {
-        std::cout<<"sendNum2 is: "<<sendNum<<std::endl;
+        std::cout<<"sendNum remain is: "<<sendNum<<std::endl;
     }
     
-    sleep(5);
     return 0;
 }
