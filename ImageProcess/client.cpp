@@ -15,6 +15,7 @@
 
 #define DEST_PORT           8000                    //目标服务器端口
 #define DEST_IP_ADDR    "192.168.221.131"     //IP
+
 #define MAX_LEN 60000
 
 using namespace std;
@@ -26,7 +27,7 @@ int main()
     if(socket_fd < 0)   //创建结果检测
     {
         std::cout<<"create socket Error!"<<std::endl;
-        exit(1);
+        return -1;
     }
 
     struct sockaddr_in addr_server;     //服务器属性
@@ -36,31 +37,33 @@ int main()
     addr_server.sin_family = AF_INET;
     addr_server.sin_port = htons(DEST_PORT);
     
-    int sendNum;
-    int recvNum;
-    char sendBuf[20] = "Are you hearing?";
-    char recvBuf[20];
-/***new add***/
+
+    //------------获取图像数据
     imgData* image = new imgData;
     // cout<<"begin imgpro"<<endl;
     int status = imgProcess(image);
-    printf("status is %d\n", status);
+    std::cout<<"status is "<<status<<std::endl;
     //cout<<"end imgpro"<<endl;
     
-    // sendNum = image->length;
-    // cout<<"assign"<<endl;
-    FILE* fp = fopen("image.bmp", "wb");
+
+    //-------------图像存储
+    FILE* fp = fopen("imageClientSource.bmp", "wb");
     if (NULL == fp)
     {
-        printf("fopen failed\n");
+        std::cout<<"fopen failed!"<<std::endl;
+        return -1;
     }
     cout<<"the len ptr are: "<<&(image->length)<<" the length are: "<<sizeof(image->length)<<endl;
     cout<<"the img ptr are: "<<image->ptr<<" the length are: "<<image->length<<endl;
     fwrite(image->ptr, 1, image->length, fp);
     fclose(fp);
-/***new add***/
-    //std::cout<<"client send:"<<sendBuf<<std::endl;
+    
 
+    //---------------开始发送图片数据-----------------
+    int sendNum;    //发送数据个数反馈
+    int recvNum;    //接收数据个数反馈
+
+    //发送图像数据总长度
     sendNum = sendto(socket_fd,
                         &(image->length),sizeof(image->length),
                         0,
@@ -75,16 +78,20 @@ int main()
         std::cout<<"sendNum(image length) is: "<<sendNum<<std::endl;
     }
 
-    char* currPtr = (char*)image->ptr;
-    int count = 0;
-    int total = image->length/MAX_LEN;
-    int remain = image->length%MAX_LEN;
+    
+    
+    char* currPtr = (char*)image->ptr;      //当前发送数据位置指针
+    int count = 0;  //当前发送数据包号
+    int feedbackNow = 0;    //反馈数据包号
+    int total = image->length/MAX_LEN;  //总包个数
+    int remain = image->length%MAX_LEN;     //尾包余数据量
     std::cout<<"total: "<<total<<std::endl;
     std::cout<<"remain: "<<remain<<std::endl;
     //除法是向下取整，说明总次数是total加１，最后一次单列
     for(count = 0; count < total; count++)
 	{
-        std::cout<<"now is in iteration:"<<count<<std::endl;
+        //发送count号包
+        // std::cout<<"now is in iteration:"<<count<<std::endl;
         sendNum = sendto(socket_fd,     //套接字
                         currPtr,MAX_LEN,   //发送数据,每次传送规定的大小
                         0,  //标志位
@@ -94,6 +101,18 @@ int main()
         {
             std::cout<<"send Error!"<<std::endl;
             printf("errno is: %d\n",errno);
+            return -1;
+        }
+
+        //等待接收端响应
+        recvNum = recvfrom(socket_fd,
+                                &feedbackNow,sizeof(feedbackNow),
+                                0,
+                                (struct sockaddr *)&addr_server,(socklen_t *)&len_addr_server);
+        if(feedbackNow != count)
+        {
+            std::cout<<"feedBackError!"<<std::endl;
+            return -1;
         }
 	}
     //最后一次 
@@ -112,21 +131,6 @@ int main()
         std::cout<<"sendNum2 is: "<<sendNum<<std::endl;
     }
     
-
-
-    // recvNum = recvfrom(socket_fd,
-    //                     recvBuf,sizeof(recvBuf),    //接收数据缓存
-    //                     0,
-    //                     (struct sockaddr *)&addr_server,(socklen_t *)&len_addr_server);
-    // if(recvNum < 0)
-    // {
-    //     std::cout << "recvFrom Error!"<<std::endl;
-    //     exit(1);
-    // }
-
-    // recvBuf[recvNum] = '\0';
-    // std::cout << "client receive "<<recvNum<<" bytes:" <<recvBuf<<std::endl;
-    // close(socket_fd);
     sleep(5);
     return 0;
 }

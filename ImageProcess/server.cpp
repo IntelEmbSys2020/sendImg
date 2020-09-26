@@ -49,7 +49,9 @@ int main()
     std::cout<<"server waiting:"<<std::endl;
 
     int recv_num;
+    int send_num;
 
+    //接收图像长度数据
     int imgLength = 0;
     //注意这是阻塞性接口！
     recv_num = recvfrom(socket_fd,              //套接字
@@ -80,27 +82,42 @@ int main()
     char * bufNow = (char*)recvBuf.ptr;
     std::cout<<"the initial bufNow is:"<<(void*)bufNow<<std::endl;
 
-    FILE* fp = fopen("image.bmp", "wb");
+    //打开文件
+    FILE* fp = fopen("imageServerRecv.bmp", "wb");
     if(!fp)
     {
         std::cout<<"file system error!"<<std::endl;
         return -1;
     }
 
+    //开始循环接收数据
     std::cout<<"BEFORE interation"<<std::endl;
     for(int i = 0; i<total;i++)
     {
-        std::cout<<"in interation"<<std::endl;
+        // std::cout<<"in interation"<<std::endl;
         recv_num = recvfrom(socket_fd,              //套接字
                         bufNow,MAX_LEN,          //接收缓冲设置
                         0,                          //接收标志
                         (struct sockaddr *)&cache_addr_client,(socklen_t *)&len_addr_server);     //客户端属性缓冲设置
-        std::cout<<"the bufNow is:"<<(void*)bufNow<<std::endl;
+        // std::cout<<"the bufNow is:"<<(void*)bufNow<<std::endl;
         //std::cout<<"the recvBuf is:"<<recvBuf.ptr<<std::endl;
         if(recv_num != MAX_LEN)
         {
             std::cout << "receive image segment length error!(" << i << ")" << std::endl;
+            return -1;
         }
+
+        send_num = sendto(socket_fd,
+                        &i,sizeof(i),
+                        0,
+                        (struct sockaddr *)&cache_addr_client,len_addr_server);
+        if(send_num != sizeof(i))
+        {
+            std::cout<<"feedback send Error!"<<std::endl;
+            return -1;
+        }
+        std::cout<<"receive "<<i<<" packet!"<<std::endl;
+        
         bufNow += MAX_LEN;
     }
 
