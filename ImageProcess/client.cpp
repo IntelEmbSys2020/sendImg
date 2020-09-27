@@ -20,6 +20,7 @@
 
 using namespace std;
 
+//client [IPv4_address]
 int main(int argc,char* argv[])
 {
     int socket_fd = socket(AF_INET,SOCK_DGRAM,0);   //创建套接字
@@ -34,7 +35,7 @@ int main(int argc,char* argv[])
     struct sockaddr_in cache_addr_client;     //客户端属性存储
     int len_addr_server = sizeof(addr_server);
     memset(&addr_server,0,len_addr_server);
-    addr_server.sin_addr.s_addr = inet_addr(DEST_IP_ADDR);
+    addr_server.sin_addr.s_addr = inet_addr(argv[1]);
     addr_server.sin_family = AF_INET;
     addr_server.sin_port = htons(DEST_PORT);
     
@@ -123,7 +124,7 @@ int main(int argc,char* argv[])
     
     if(sendNum < 0)
     {
-        std::cout<<"send Length Error!"<<std::endl;
+        std::cout<<"send remain Error!"<<std::endl;
     }
     else
     {
